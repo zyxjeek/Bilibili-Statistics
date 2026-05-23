@@ -31,11 +31,11 @@ export function OverviewCharts({ data }: { data: DashboardData }) {
         <div className="panel-heading">
           <div>
             <h2>最近 30 天趋势</h2>
-            <p>每日观看时长和视频数量</p>
+            <p>每日估算观看时长和视频数量</p>
           </div>
         </div>
         <div className="chart-box">
-          {mounted ? <ResponsiveContainer width="100%" height="100%">
+          {mounted ? <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1} initialDimension={{ width: 1, height: 1 }}>
             <LineChart data={data.dailySeries} margin={{ top: 10, right: 18, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="4 4" stroke="rgba(15, 23, 42, 0.08)" />
               <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fontSize: 12 }} />
@@ -57,11 +57,11 @@ export function OverviewCharts({ data }: { data: DashboardData }) {
         <div className="panel-heading">
           <div>
             <h2>分类分布</h2>
-            <p>按观看时长统计</p>
+            <p>按有效观看进度统计</p>
           </div>
         </div>
         <div className="donut-wrap">
-          {mounted ? <ResponsiveContainer width="100%" height={230}>
+          {mounted ? <ResponsiveContainer width="100%" height={230} minWidth={1} minHeight={1} initialDimension={{ width: 1, height: 1 }}>
             <PieChart>
               <Pie
                 data={categoryData}
@@ -94,11 +94,11 @@ export function OverviewCharts({ data }: { data: DashboardData }) {
         <div className="panel-heading">
           <div>
             <h2>UP 主排行</h2>
-            <p>Top 8 观看时长</p>
+            <p>Top 8 估算观看时长</p>
           </div>
         </div>
         <div className="chart-box short">
-          {mounted ? <ResponsiveContainer width="100%" height="100%">
+          {mounted ? <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1} initialDimension={{ width: 1, height: 1 }}>
             <BarChart data={creatorData} layout="vertical" margin={{ top: 4, right: 20, left: 20, bottom: 4 }}>
               <CartesianGrid strokeDasharray="4 4" stroke="rgba(15, 23, 42, 0.08)" horizontal={false} />
               <XAxis type="number" tickFormatter={formatCompactDuration} tickLine={false} axisLine={false} />

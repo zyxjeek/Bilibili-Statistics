@@ -3,7 +3,6 @@ import {
   eachMonthOfInterval,
   endOfDay,
   format,
-  isAfter,
   startOfDay,
   startOfMonth,
   startOfWeek,
@@ -13,6 +12,7 @@ import {
 } from "date-fns";
 import { createClient } from "@supabase/supabase-js";
 import { sampleRows } from "./sample-data";
+import { getWatchedSeconds, hasWatchedSeconds, normalizeHistoryRow } from "./watch-metrics";
 import type {
   CategoryStat,
   CreatorStat,
@@ -78,6 +78,7 @@ function buildDashboardData(
 ): DashboardData {
   const rows = inputRows
     .filter((row) => row.view_at)
+    .map(normalizeHistoryRow)
     .sort((a, b) => new Date(b.view_at).getTime() - new Date(a.view_at).getTime());
 
   return {
@@ -94,12 +95,8 @@ function buildDashboardData(
   };
 }
 
-function validDuration(row: WatchHistoryRow) {
-  return Number.isFinite(row.duration) && (row.duration ?? 0) > 0;
-}
-
 function rowSeconds(row: WatchHistoryRow) {
-  return validDuration(row) ? row.duration ?? 0 : 0;
+  return getWatchedSeconds(row);
 }
 
 function buildStatCards(rows: WatchHistoryRow[]): StatCard[] {
@@ -108,7 +105,7 @@ function buildStatCards(rows: WatchHistoryRow[]): StatCard[] {
   return periods.map((period) => {
     const scoped = rows.filter((row) => {
       const viewedAt = new Date(row.view_at);
-      return isAfter(viewedAt, period.start) && viewedAt <= now && validDuration(row);
+      return viewedAt >= period.start && viewedAt <= now && hasWatchedSeconds(row);
     });
 
     return {
@@ -172,7 +169,7 @@ function buildYearlySeries(rows: WatchHistoryRow[]): SeriesPoint[] {
 }
 
 function toPoint(label: string, rows: WatchHistoryRow[]): SeriesPoint {
-  const scoped = rows.filter(validDuration);
+  const scoped = rows.filter(hasWatchedSeconds);
   return {
     label,
     seconds: scoped.reduce((sum, row) => sum + rowSeconds(row), 0),
@@ -183,7 +180,7 @@ function toPoint(label: string, rows: WatchHistoryRow[]): SeriesPoint {
 function buildCategoryStats(rows: WatchHistoryRow[]): CategoryStat[] {
   const map = new Map<string, CategoryStat>();
 
-  rows.filter(validDuration).forEach((row) => {
+  rows.filter(hasWatchedSeconds).forEach((row) => {
     const name = row.tag_name || "未分类";
     const current = map.get(name) ?? { name, seconds: 0, videos: 0 };
     current.seconds += rowSeconds(row);
@@ -197,7 +194,7 @@ function buildCategoryStats(rows: WatchHistoryRow[]): CategoryStat[] {
 function buildCreatorStats(rows: WatchHistoryRow[]): CreatorStat[] {
   const map = new Map<string, CreatorStat>();
 
-  rows.filter(validDuration).forEach((row) => {
+  rows.filter(hasWatchedSeconds).forEach((row) => {
     const key = String(row.author_mid ?? row.author_name ?? "unknown");
     const current = map.get(key) ?? {
       mid: row.author_mid,

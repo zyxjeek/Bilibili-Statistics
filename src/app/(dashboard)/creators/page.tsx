@@ -1,9 +1,8 @@
-import { DashboardShell } from "@/components/dashboard-shell";
-import { getDashboardData } from "@/lib/dashboard-data";
+"use client";
 
-export const dynamic = "force-dynamic";
+import { CreatorView } from "@/components/creator-view";
+import { useDashboardData } from "@/components/dashboard-data-provider";
 
-export default async function CreatorsPage() {
-  const data = await getDashboardData();
-  return <DashboardShell data={data} activeView="creators" />;
+export default function CreatorsPage() {
+  return <CreatorView data={useDashboardData()} />;
 }

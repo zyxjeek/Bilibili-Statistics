@@ -58,7 +58,7 @@ export function TrendCharts({ data }: { data: DashboardData }) {
           </div>
         </div>
         <div className="chart-box tall">
-          {mounted ? <ResponsiveContainer width="100%" height="100%">
+          {mounted ? <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1} initialDimension={{ width: 1, height: 1 }}>
             <LineChart data={series} margin={{ top: 14, right: 24, left: 0, bottom: 4 }}>
               <CartesianGrid strokeDasharray="4 4" stroke="rgba(15, 23, 42, 0.08)" />
               <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fontSize: 12 }} />
@@ -85,7 +85,7 @@ export function TrendCharts({ data }: { data: DashboardData }) {
           </div>
         </div>
         <div className="chart-box tall">
-          {mounted ? <ResponsiveContainer width="100%" height="100%">
+          {mounted ? <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1} initialDimension={{ width: 1, height: 1 }}>
             <BarChart data={series} margin={{ top: 14, right: 24, left: 0, bottom: 4 }}>
               <CartesianGrid strokeDasharray="4 4" stroke="rgba(15, 23, 42, 0.08)" />
               <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fontSize: 12 }} />

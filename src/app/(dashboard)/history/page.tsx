@@ -1,9 +1,8 @@
-import { DashboardShell } from "@/components/dashboard-shell";
-import { getDashboardData } from "@/lib/dashboard-data";
+"use client";
 
-export const dynamic = "force-dynamic";
+import { HistoryTable } from "@/components/history-table";
+import { useDashboardData } from "@/components/dashboard-data-provider";
 
-export default async function HistoryPage() {
-  const data = await getDashboardData();
-  return <DashboardShell data={data} activeView="history" />;
+export default function HistoryPage() {
+  return <HistoryTable rows={useDashboardData().rows} />;
 }

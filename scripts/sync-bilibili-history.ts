@@ -140,21 +140,22 @@ function normalizeItem(item: BiliHistoryItem): WatchHistoryInsert | null {
   }
 
   const business = String(item.history?.business ?? "unknown");
-  const kid = String(item.history?.oid ?? item.history?.kid ?? item.bvid ?? item.title ?? item.view_at);
+  const bvid = item.bvid ?? item.history?.bvid ?? null;
+  const kid = String(item.history?.oid ?? item.history?.kid ?? bvid ?? item.title ?? item.view_at);
 
   return {
     business,
     kid,
     title: item.title ?? "未命名视频",
-    bvid: item.bvid ?? item.history?.bvid ?? null,
+    bvid,
     author_mid: toNumberOrNull(item.author_mid),
     author_name: item.author_name ?? null,
     tag_name: item.tag_name ?? null,
     duration: toNumberOrNull(item.duration),
-    progress: toNumberOrNull(item.progress),
+    progress: toProgressOrNull(item.progress),
     view_at: new Date(item.view_at * 1000).toISOString(),
-    cover: item.cover ?? null,
-    uri: item.uri ?? (item.bvid ? `https://www.bilibili.com/video/${item.bvid}` : null),
+    cover: normalizeExternalUrl(item.cover),
+    uri: normalizeVideoUrl(item.uri, bvid),
     raw: item,
   };
 }
@@ -237,6 +238,48 @@ function uniqueKey(item: Pick<WatchHistoryInsert, "business" | "kid" | "view_at"
 function toNumberOrNull(value: unknown) {
   const numberValue = Number(value);
   return Number.isFinite(numberValue) && numberValue >= 0 ? numberValue : null;
+}
+
+function toProgressOrNull(value: unknown) {
+  const numberValue = Number(value);
+  if (numberValue === -1) {
+    return -1;
+  }
+
+  return Number.isFinite(numberValue) && numberValue >= 0 ? numberValue : null;
+}
+
+function normalizeVideoUrl(value: string | null | undefined, bvid: string | null) {
+  return normalizeExternalUrl(value) ?? (bvid ? `https://www.bilibili.com/video/${bvid}` : null);
+}
+
+function normalizeExternalUrl(value: string | null | undefined) {
+  const url = value?.trim();
+  if (!url) {
+    return null;
+  }
+
+  if (url.startsWith("//")) {
+    return `https:${url}`;
+  }
+
+  if (url.startsWith("http://")) {
+    return `https://${url.slice("http://".length)}`;
+  }
+
+  if (url.startsWith("https://")) {
+    return url;
+  }
+
+  if (url.startsWith("/")) {
+    return `https://www.bilibili.com${url}`;
+  }
+
+  if (/^[a-z0-9.-]+\.[a-z]{2,}\//i.test(url)) {
+    return `https://${url}`;
+  }
+
+  return null;
 }
 
 function requireEnv(name: string) {

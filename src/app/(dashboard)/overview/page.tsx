@@ -1,9 +1,8 @@
-import { DashboardShell } from "@/components/dashboard-shell";
-import { getDashboardData } from "@/lib/dashboard-data";
+"use client";
 
-export const dynamic = "force-dynamic";
+import { useDashboardData } from "@/components/dashboard-data-provider";
+import { OverviewView } from "@/components/dashboard-shell";
 
-export default async function OverviewPage() {
-  const data = await getDashboardData();
-  return <DashboardShell data={data} activeView="overview" />;
+export default function OverviewPage() {
+  return <OverviewView data={useDashboardData()} />;
 }

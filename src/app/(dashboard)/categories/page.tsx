@@ -1,9 +1,8 @@
-import { DashboardShell } from "@/components/dashboard-shell";
-import { getDashboardData } from "@/lib/dashboard-data";
+"use client";
 
-export const dynamic = "force-dynamic";
+import { CategoryView } from "@/components/category-view";
+import { useDashboardData } from "@/components/dashboard-data-provider";
 
-export default async function CategoriesPage() {
-  const data = await getDashboardData();
-  return <DashboardShell data={data} activeView="categories" />;
+export default function CategoriesPage() {
+  return <CategoryView data={useDashboardData()} />;
 }

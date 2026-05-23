@@ -1,9 +1,8 @@
-import { DashboardShell } from "@/components/dashboard-shell";
-import { getDashboardData } from "@/lib/dashboard-data";
+"use client";
 
-export const dynamic = "force-dynamic";
+import { TrendCharts } from "@/components/trend-charts";
+import { useDashboardData } from "@/components/dashboard-data-provider";
 
-export default async function TrendsPage() {
-  const data = await getDashboardData();
-  return <DashboardShell data={data} activeView="trends" />;
+export default function TrendsPage() {
+  return <TrendCharts data={useDashboardData()} />;
 }

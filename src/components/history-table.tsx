@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useMemo, useState } from "react";
 import type { WatchHistoryRow } from "@/lib/types";
 import { formatDateTime, formatDuration } from "@/lib/format";
+import { getCoverUrl, getProgressSeconds, getVideoDuration, getVideoHref } from "@/lib/watch-metrics";
 
 type HistoryTableProps = {
   rows: WatchHistoryRow[];
@@ -94,24 +95,58 @@ export function HistoryTable({ rows, compact = false }: HistoryTableProps) {
             </tr>
           </thead>
           <tbody>
-            {filteredRows.map((row) => (
-              <tr key={`${row.business}-${row.kid}-${row.view_at}`}>
-                <td>
-                  <a href={row.uri ?? undefined} target="_blank" rel="noreferrer" className="video-cell">
-                    {row.cover ? <Image src={row.cover} alt="" width={108} height={68} unoptimized /> : <span className="cover-placeholder" />}
-                    <span>{row.title}</span>
-                  </a>
-                </td>
-                <td>{row.author_name ?? "未知"}</td>
-                <td>{row.tag_name ?? "未分类"}</td>
-                <td>{formatDuration(row.duration ?? 0)}</td>
-                <td>{row.progress && row.progress > 0 ? formatDuration(row.progress) : "-"}</td>
-                <td>{formatDateTime(row.view_at)}</td>
-              </tr>
-            ))}
+            {filteredRows.map((row) => {
+              const href = getVideoHref(row);
+              const progressSeconds = getProgressSeconds(row);
+
+              return (
+                <tr key={`${row.business}-${row.kid}-${row.view_at}`}>
+                  <td>
+                    <a
+                      href={href ?? "#"}
+                      target={href ? "_blank" : undefined}
+                      rel={href ? "noreferrer" : undefined}
+                      className={href ? "video-cell" : "video-cell disabled"}
+                      onClick={(event) => {
+                        if (!href) event.preventDefault();
+                      }}
+                    >
+                      <CoverImage src={getCoverUrl(row)} />
+                      <span>{row.title}</span>
+                    </a>
+                  </td>
+                  <td>{row.author_name ?? "未知"}</td>
+                  <td>{row.tag_name ?? "未分类"}</td>
+                  <td>{formatDuration(getVideoDuration(row) ?? 0)}</td>
+                  <td>{progressSeconds ? formatDuration(progressSeconds) : "-"}</td>
+                  <td>{formatDateTime(row.view_at)}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
     </section>
+  );
+}
+
+function CoverImage({ src }: { src: string | null }) {
+  const [failed, setFailed] = useState(false);
+
+  if (!src || failed) {
+    return <span className="cover-placeholder" />;
+  }
+
+  return (
+    <Image
+      src={src}
+      alt=""
+      width={108}
+      height={68}
+      loading="lazy"
+      referrerPolicy="no-referrer"
+      unoptimized
+      onError={() => setFailed(true)}
+    />
   );
 }

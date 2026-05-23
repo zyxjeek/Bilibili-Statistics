@@ -1,3 +1,5 @@
+"use client";
+
 import {
   BarChart3,
   CalendarClock,
@@ -7,21 +9,15 @@ import {
   Tags,
   UserRound,
 } from "lucide-react";
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
+import { usePathname } from "next/navigation";
 import type { DashboardData } from "@/lib/types";
 import { formatDateTime, formatDuration } from "@/lib/format";
+import { useDashboardData } from "./dashboard-data-provider";
 import { OverviewCharts } from "./overview-charts";
-import { TrendCharts } from "./trend-charts";
-import { CategoryView } from "./category-view";
-import { CreatorView } from "./creator-view";
 import { HistoryTable } from "./history-table";
 
 type DashboardView = "overview" | "trends" | "categories" | "creators" | "history";
-
-type DashboardShellProps = {
-  data: DashboardData;
-  activeView: DashboardView;
-};
 
 const navItems = [
   { href: "/overview", label: "总览", icon: LayoutDashboard, view: "overview" },
@@ -39,19 +35,19 @@ const navItems = [
 const viewTitles: Record<DashboardView, { title: string; description: string }> = {
   overview: {
     title: "观看统计",
-    description: "按观看时长、分类和 UP 主追踪你的 Bilibili 内容习惯。",
+    description: "按有效观看进度估算你的 Bilibili 内容习惯。",
   },
   trends: {
     title: "观看趋势",
-    description: "查看每日、每周、每月和年度观看时长变化。",
+    description: "查看每日、每周、每月和年度估算观看时长变化。",
   },
   categories: {
     title: "内容分类",
-    description: "按 Bilibili 历史记录中的分类标签统计视频时长和数量。",
+    description: "按 Bilibili 历史记录中的分类标签统计观看进度和数量。",
   },
   creators: {
     title: "UP 主排行",
-    description: "找出你投入最多观看时间的创作者。",
+    description: "找出你投入最多有效观看时间的创作者。",
   },
   history: {
     title: "观看明细",
@@ -59,7 +55,9 @@ const viewTitles: Record<DashboardView, { title: string; description: string }> 
   },
 };
 
-export function DashboardShell({ data, activeView }: DashboardShellProps) {
+export function DashboardFrame({ children }: { children: React.ReactNode }) {
+  const data = useDashboardData();
+  const activeView = getActiveView(usePathname());
   const totalSeconds = data.statCards.find((card) => card.key === "year")?.seconds ?? 0;
   const title = viewTitles[activeView];
 
@@ -85,13 +83,14 @@ export function DashboardShell({ data, activeView }: DashboardShellProps) {
               >
                 <Icon size={18} strokeWidth={2.1} />
                 <span>{item.label}</span>
+                <NavPendingHint />
               </Link>
             );
           })}
         </nav>
 
         <div className="sidebar-footer">
-          <div className="mini-label">今年累计</div>
+          <div className="mini-label">今年估算</div>
           <div className="mini-value">{formatDuration(totalSeconds)}</div>
         </div>
       </aside>
@@ -120,17 +119,13 @@ export function DashboardShell({ data, activeView }: DashboardShellProps) {
           </div>
         ) : null}
 
-        {activeView === "overview" ? <Overview data={data} /> : null}
-        {activeView === "trends" ? <TrendCharts data={data} /> : null}
-        {activeView === "categories" ? <CategoryView data={data} /> : null}
-        {activeView === "creators" ? <CreatorView data={data} /> : null}
-        {activeView === "history" ? <HistoryTable rows={data.rows} /> : null}
+        {children}
       </main>
     </div>
   );
 }
 
-function Overview({ data }: { data: DashboardData }) {
+export function OverviewView({ data }: { data: DashboardData }) {
   return (
     <div className="dashboard-grid">
       <section className="kpi-grid" aria-label="核心统计">
@@ -151,4 +146,15 @@ function Overview({ data }: { data: DashboardData }) {
       <HistoryTable rows={data.rows.slice(0, 12)} compact />
     </div>
   );
+}
+
+function NavPendingHint() {
+  const { pending } = useLinkStatus();
+
+  return <span aria-hidden className={pending ? "nav-pending visible" : "nav-pending"} />;
+}
+
+function getActiveView(pathname: string): DashboardView {
+  const match = navItems.find((item) => pathname === item.href || pathname.startsWith(`${item.href}/`));
+  return match?.view ?? "overview";
 }

@@ -22,11 +22,11 @@ export function CreatorView({ data }: { data: DashboardData }) {
         <div className="panel-heading">
           <div>
             <h2>Top UP 主观看时长</h2>
-            <p>按近一年观看记录聚合</p>
+            <p>按近一年有效观看进度聚合</p>
           </div>
         </div>
         <div className="chart-box tall">
-          {mounted ? <ResponsiveContainer width="100%" height="100%">
+          {mounted ? <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1} initialDimension={{ width: 1, height: 1 }}>
             <BarChart data={data.creators.slice(0, 15)} layout="vertical" margin={{ top: 14, right: 24, left: 32, bottom: 4 }}>
               <CartesianGrid strokeDasharray="4 4" stroke="rgba(15, 23, 42, 0.08)" horizontal={false} />
               <XAxis type="number" tickFormatter={formatCompactDuration} tickLine={false} axisLine={false} />

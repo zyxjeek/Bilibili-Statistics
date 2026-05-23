@@ -25,11 +25,11 @@ export function CategoryView({ data }: { data: DashboardData }) {
         <div className="panel-heading">
           <div>
             <h2>分类观看时长</h2>
-            <p>默认统计有视频时长的记录</p>
+            <p>按有效观看进度统计</p>
           </div>
         </div>
         <div className="chart-box tall">
-          {mounted ? <ResponsiveContainer width="100%" height="100%">
+          {mounted ? <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1} initialDimension={{ width: 1, height: 1 }}>
             <BarChart data={data.categories} margin={{ top: 14, right: 20, left: 0, bottom: 4 }}>
               <CartesianGrid strokeDasharray="4 4" stroke="rgba(15, 23, 42, 0.08)" />
               <XAxis dataKey="name" tickLine={false} axisLine={false} tick={{ fontSize: 12 }} />
