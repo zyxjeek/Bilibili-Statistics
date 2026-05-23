@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import {
   Bar,
@@ -14,6 +15,7 @@ import {
 } from "recharts";
 import type { DashboardData, SeriesPoint } from "@/lib/types";
 import { formatCompactDuration, formatDuration } from "@/lib/format";
+import { buildHistoryHref } from "@/lib/history-filters";
 import { useMounted } from "./use-mounted";
 
 type RangeKey = "daily" | "weekly" | "monthly" | "yearly";
@@ -27,6 +29,7 @@ const ranges: Array<{ key: RangeKey; label: string }> = [
 
 export function TrendCharts({ data }: { data: DashboardData }) {
   const mounted = useMounted();
+  const router = useRouter();
   const [range, setRange] = useState<RangeKey>("daily");
   const series = useMemo<SeriesPoint[]>(() => {
     if (range === "weekly") return data.weeklySeries;
@@ -34,6 +37,13 @@ export function TrendCharts({ data }: { data: DashboardData }) {
     if (range === "yearly") return data.yearlySeries;
     return data.dailySeries;
   }, [data.dailySeries, data.monthlySeries, data.weeklySeries, data.yearlySeries, range]);
+
+  function openPayload(payload: unknown) {
+    const point = getActivePayload<SeriesPoint>(payload);
+    if (point?.from && point.to) {
+      router.push(buildHistoryHref({ from: point.from, to: point.to }));
+    }
+  }
 
   return (
     <section className="stack">
@@ -57,9 +67,9 @@ export function TrendCharts({ data }: { data: DashboardData }) {
             <p>当前周期：{ranges.find((item) => item.key === range)?.label}</p>
           </div>
         </div>
-        <div className="chart-box tall">
+        <div className="chart-box tall clickable-chart">
           {mounted ? <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1} initialDimension={{ width: 1, height: 1 }}>
-            <LineChart data={series} margin={{ top: 14, right: 24, left: 0, bottom: 4 }}>
+            <LineChart data={series} margin={{ top: 14, right: 24, left: 0, bottom: 4 }} onClick={openPayload}>
               <CartesianGrid strokeDasharray="4 4" stroke="rgba(15, 23, 42, 0.08)" />
               <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fontSize: 12 }} />
               <YAxis tickFormatter={formatCompactDuration} tickLine={false} axisLine={false} width={54} />
@@ -84,9 +94,9 @@ export function TrendCharts({ data }: { data: DashboardData }) {
             <p>同周期内已计入的视频条目数</p>
           </div>
         </div>
-        <div className="chart-box tall">
+        <div className="chart-box tall clickable-chart">
           {mounted ? <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1} initialDimension={{ width: 1, height: 1 }}>
-            <BarChart data={series} margin={{ top: 14, right: 24, left: 0, bottom: 4 }}>
+            <BarChart data={series} margin={{ top: 14, right: 24, left: 0, bottom: 4 }} onClick={openPayload}>
               <CartesianGrid strokeDasharray="4 4" stroke="rgba(15, 23, 42, 0.08)" />
               <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fontSize: 12 }} />
               <YAxis tickLine={false} axisLine={false} width={44} />
@@ -98,4 +108,8 @@ export function TrendCharts({ data }: { data: DashboardData }) {
       </article>
     </section>
   );
+}
+
+function getActivePayload<T>(payload: unknown) {
+  return (payload as { activePayload?: Array<{ payload?: T }> })?.activePayload?.[0]?.payload;
 }

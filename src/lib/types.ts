@@ -26,12 +26,16 @@ export type StatCard = {
   seconds: number;
   videos: number;
   creators: number;
+  from: string;
+  to: string;
 };
 
 export type SeriesPoint = {
   label: string;
   seconds: number;
   videos: number;
+  from: string;
+  to: string;
 };
 
 export type CategoryStat = {

@@ -2,6 +2,9 @@ import {
   eachDayOfInterval,
   eachMonthOfInterval,
   endOfDay,
+  endOfMonth,
+  endOfWeek,
+  endOfYear,
   format,
   startOfDay,
   startOfMonth,
@@ -24,13 +27,6 @@ import type {
 } from "./types";
 
 type SyncRunRow = DashboardData["lastSync"];
-
-const periods: Array<{ key: PeriodKey; label: string; start: Date }> = [
-  { key: "today", label: "今日观看", start: startOfDay(new Date()) },
-  { key: "week", label: "本周观看", start: startOfWeek(new Date(), { weekStartsOn: 1 }) },
-  { key: "month", label: "本月观看", start: startOfMonth(new Date()) },
-  { key: "year", label: "今年观看", start: startOfYear(new Date()) },
-];
 
 export async function getDashboardData(): Promise<DashboardData> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -101,6 +97,17 @@ function rowSeconds(row: WatchHistoryRow) {
 
 function buildStatCards(rows: WatchHistoryRow[]): StatCard[] {
   const now = new Date();
+  const periods: Array<{ key: PeriodKey; label: string; start: Date; end: Date }> = [
+    { key: "today", label: "今日观看", start: startOfDay(now), end: endOfDay(now) },
+    {
+      key: "week",
+      label: "本周观看",
+      start: startOfWeek(now, { weekStartsOn: 1 }),
+      end: endOfWeek(now, { weekStartsOn: 1 }),
+    },
+    { key: "month", label: "本月观看", start: startOfMonth(now), end: endOfMonth(now) },
+    { key: "year", label: "今年观看", start: startOfYear(now), end: endOfYear(now) },
+  ];
 
   return periods.map((period) => {
     const scoped = rows.filter((row) => {
@@ -114,6 +121,8 @@ function buildStatCards(rows: WatchHistoryRow[]): StatCard[] {
       seconds: scoped.reduce((sum, row) => sum + rowSeconds(row), 0),
       videos: scoped.length,
       creators: new Set(scoped.map((row) => row.author_mid ?? row.author_name)).size,
+      from: period.start.toISOString(),
+      to: period.end.toISOString(),
     };
   });
 }
@@ -126,7 +135,7 @@ function buildDailySeries(rows: WatchHistoryRow[]): SeriesPoint[] {
   return days.map((day) => {
     const label = format(day, "MM-dd");
     const scoped = rows.filter((row) => format(new Date(row.view_at), "yyyy-MM-dd") === format(day, "yyyy-MM-dd"));
-    return toPoint(label, scoped);
+    return toPoint(label, scoped, startOfDay(day), endOfDay(day));
   });
 }
 
@@ -139,7 +148,7 @@ function buildRollingWeekSeries(rows: WatchHistoryRow[]): SeriesPoint[] {
       return viewedAt >= start && viewedAt <= end;
     });
 
-    return toPoint(format(start, "MM-dd"), scoped);
+    return toPoint(format(start, "MM-dd"), scoped, start, end);
   });
 }
 
@@ -151,7 +160,7 @@ function buildMonthlySeries(rows: WatchHistoryRow[]): SeriesPoint[] {
 
   return months.map((month) => {
     const scoped = rows.filter((row) => format(new Date(row.view_at), "yyyy-MM") === format(month, "yyyy-MM"));
-    return toPoint(format(month, "yyyy-MM"), scoped);
+    return toPoint(format(month, "yyyy-MM"), scoped, startOfMonth(month), endOfMonth(month));
   });
 }
 
@@ -165,15 +174,20 @@ function buildYearlySeries(rows: WatchHistoryRow[]): SeriesPoint[] {
 
   return [...map.entries()]
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([label, scoped]) => toPoint(label, scoped));
+    .map(([label, scoped]) => {
+      const start = startOfYear(new Date(Number(label), 0, 1));
+      return toPoint(label, scoped, start, endOfYear(start));
+    });
 }
 
-function toPoint(label: string, rows: WatchHistoryRow[]): SeriesPoint {
+function toPoint(label: string, rows: WatchHistoryRow[], from: Date, to: Date): SeriesPoint {
   const scoped = rows.filter(hasWatchedSeconds);
   return {
     label,
     seconds: scoped.reduce((sum, row) => sum + rowSeconds(row), 0),
     videos: scoped.length,
+    from: from.toISOString(),
+    to: to.toISOString(),
   };
 }
 

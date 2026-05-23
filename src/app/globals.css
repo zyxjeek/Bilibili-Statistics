@@ -346,6 +346,10 @@ td,
   min-height: 1px;
 }
 
+.clickable-chart {
+  cursor: pointer;
+}
+
 .chart-box.short {
   height: 300px;
 }
@@ -366,6 +370,7 @@ td,
   gap: 8px 12px;
 }
 
+.legend-list a,
 .legend-list span {
   display: inline-flex;
   align-items: center;
@@ -469,6 +474,44 @@ td,
   width: 100%;
   max-width: 100%;
   overflow-x: auto;
+}
+
+.filter-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: -2px 0 14px;
+}
+
+.filter-summary span,
+.filter-summary a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.filter-summary span {
+  color: var(--accent-strong);
+  background: color-mix(in srgb, var(--accent) 12%, var(--panel));
+}
+
+.filter-summary a {
+  border: 1px solid var(--border);
+  color: var(--muted);
+  background: var(--panel-subtle);
+}
+
+.clickable-row {
+  cursor: pointer;
+}
+
+.clickable-row:hover td {
+  background: color-mix(in srgb, var(--accent) 7%, var(--panel));
 }
 
 table {

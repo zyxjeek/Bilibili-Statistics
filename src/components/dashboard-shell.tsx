@@ -14,6 +14,7 @@ import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import type { DashboardData } from "@/lib/types";
 import { formatDateTime, formatDuration } from "@/lib/format";
+import { buildHistoryHref } from "@/lib/history-filters";
 import { needsLongVideoReview } from "@/lib/watch-metrics";
 import { useDashboardData } from "./dashboard-data-provider";
 import { OverviewCharts } from "./overview-charts";
@@ -141,7 +142,7 @@ export function OverviewView({ data }: { data: DashboardData }) {
     <div className="dashboard-grid">
       <section className="kpi-grid" aria-label="核心统计">
         {data.statCards.map((card) => (
-          <article key={card.key} className="metric-card">
+          <Link key={card.key} className="metric-card" href={buildHistoryHref({ from: card.from, to: card.to })}>
             <div className="metric-icon">
               <BarChart3 size={18} />
             </div>
@@ -150,7 +151,7 @@ export function OverviewView({ data }: { data: DashboardData }) {
             <small>
               {card.videos} 个计入视频 / {card.creators} 位 UP 主
             </small>
-          </article>
+          </Link>
         ))}
       </section>
       <OverviewCharts data={data} />

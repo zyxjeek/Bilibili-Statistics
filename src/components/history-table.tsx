@@ -2,7 +2,8 @@
 
 import { Search } from "lucide-react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import type { WatchHistoryRow } from "@/lib/types";
 import { formatDateTime, formatDuration } from "@/lib/format";
@@ -34,9 +35,14 @@ export function HistoryTable({
   title,
 }: HistoryTableProps) {
   const router = useRouter();
-  const [query, setQuery] = useState("");
-  const [category, setCategory] = useState("all");
-  const [creator, setCreator] = useState("all");
+  const searchParams = useSearchParams();
+  const urlFilters = readUrlFilters(searchParams);
+  const [query, setQuery] = useState(urlFilters.q);
+  const [category, setCategory] = useState(urlFilters.category);
+  const [creator, setCreator] = useState(urlFilters.creator);
+  const [creatorMid, setCreatorMid] = useState(urlFilters.creatorMid);
+  const [dateFrom] = useState(urlFilters.from);
+  const [dateTo] = useState(urlFilters.to);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [localOverrides, setLocalOverrides] = useState<Record<string, boolean>>({});
@@ -52,10 +58,14 @@ export function HistoryTable({
 
   const filteredRows = useMemo(() => {
     const keyword = query.trim().toLowerCase();
-    return rows
+    const fromTime = dateFrom ? new Date(dateFrom).getTime() : null;
+    const toTime = dateTo ? new Date(dateTo).getTime() : null;
+    const hasFilters = Boolean(keyword || category !== "all" || creator !== "all" || creatorMid || fromTime || toTime);
+    const filtered = rows
       .filter((row) => {
         const rowCategory = row.tag_name || "未分类";
         const rowCreator = row.author_name || "未知 UP 主";
+        const viewedAt = new Date(row.view_at).getTime();
         const matchKeyword =
           !keyword ||
           row.title.toLowerCase().includes(keyword) ||
@@ -65,11 +75,24 @@ export function HistoryTable({
         return (
           matchKeyword &&
           (category === "all" || rowCategory === category) &&
-          (creator === "all" || rowCreator === creator)
+          (!creatorMid || String(row.author_mid ?? "") === creatorMid) &&
+          (creator === "all" || rowCreator === creator) &&
+          (!fromTime || viewedAt >= fromTime) &&
+          (!toTime || viewedAt <= toTime)
         );
-      })
-      .slice(0, compact ? 12 : 200);
-  }, [category, compact, creator, query, rows]);
+      });
+
+    if (compact) {
+      return filtered.slice(0, 12);
+    }
+
+    return hasFilters ? filtered : filtered.slice(0, 200);
+  }, [category, compact, creator, creatorMid, dateFrom, dateTo, query, rows]);
+
+  const filterLabels = useMemo(
+    () => buildFilterLabels({ category, creator, creatorMid, from: dateFrom, q: query, to: dateTo }),
+    [category, creator, creatorMid, dateFrom, dateTo, query],
+  );
 
   async function setCountOverride(row: WatchHistoryRow, countOverride: boolean) {
     setPendingId(row.id);
@@ -131,7 +154,14 @@ export function HistoryTable({
                 </option>
               ))}
             </select>
-            <select value={creator} onChange={(event) => setCreator(event.target.value)} aria-label="UP 主筛选">
+            <select
+              value={creator}
+              onChange={(event) => {
+                setCreator(event.target.value);
+                setCreatorMid("");
+              }}
+              aria-label="UP 主筛选"
+            >
               {creators.map((item) => (
                 <option key={item} value={item}>
                   {item === "all" ? "全部 UP 主" : item}
@@ -141,6 +171,15 @@ export function HistoryTable({
           </div>
         ) : null}
       </div>
+
+      {showFilters && filterLabels.length > 0 ? (
+        <div className="filter-summary">
+          {filterLabels.map((label) => (
+            <span key={label}>{label}</span>
+          ))}
+          <Link href="/history">清除筛选</Link>
+        </div>
+      ) : null}
 
       <div className="table-wrap">
         <table>
@@ -204,6 +243,53 @@ export function HistoryTable({
       </div>
     </section>
   );
+}
+
+function readUrlFilters(searchParams: Pick<URLSearchParams, "get">) {
+  return {
+    category: searchParams.get("category") || "all",
+    creator: searchParams.get("creator") || "all",
+    creatorMid: searchParams.get("creatorMid") || "",
+    from: searchParams.get("from") || "",
+    q: searchParams.get("q") || "",
+    to: searchParams.get("to") || "",
+  };
+}
+
+function buildFilterLabels(filters: ReturnType<typeof readUrlFilters>) {
+  const labels: string[] = [];
+
+  if (filters.from || filters.to) {
+    labels.push(`时间：${formatFilterDate(filters.from) || "开始"} - ${formatFilterDate(filters.to) || "现在"}`);
+  }
+
+  if (filters.category !== "all") {
+    labels.push(`分类：${filters.category}`);
+  }
+
+  if (filters.creator !== "all") {
+    labels.push(`UP 主：${filters.creator}`);
+  } else if (filters.creatorMid) {
+    labels.push(`UP 主 MID：${filters.creatorMid}`);
+  }
+
+  if (filters.q.trim()) {
+    labels.push(`搜索：${filters.q.trim()}`);
+  }
+
+  return labels;
+}
+
+function formatFilterDate(value: string) {
+  if (!value) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(value));
 }
 
 function CountControl({

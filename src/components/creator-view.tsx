@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import {
   Bar,
   BarChart,
@@ -11,10 +12,12 @@ import {
 } from "recharts";
 import type { DashboardData } from "@/lib/types";
 import { formatCompactDuration, formatDuration } from "@/lib/format";
+import { buildHistoryHref } from "@/lib/history-filters";
 import { useMounted } from "./use-mounted";
 
 export function CreatorView({ data }: { data: DashboardData }) {
   const mounted = useMounted();
+  const router = useRouter();
 
   return (
     <section className="stack">
@@ -25,9 +28,19 @@ export function CreatorView({ data }: { data: DashboardData }) {
             <p>按近一年已计入的完播视频聚合</p>
           </div>
         </div>
-        <div className="chart-box tall">
+        <div className="chart-box tall clickable-chart">
           {mounted ? <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1} initialDimension={{ width: 1, height: 1 }}>
-            <BarChart data={data.creators.slice(0, 15)} layout="vertical" margin={{ top: 14, right: 24, left: 32, bottom: 4 }}>
+            <BarChart
+              data={data.creators.slice(0, 15)}
+              layout="vertical"
+              margin={{ top: 14, right: 24, left: 32, bottom: 4 }}
+              onClick={(payload) => {
+                const creator = getActivePayload<{ mid?: number | null; name?: string }>(payload);
+                if (creator) {
+                  router.push(buildHistoryHref({ creator: creator.name, creatorMid: creator.mid }));
+                }
+              }}
+            >
               <CartesianGrid strokeDasharray="4 4" stroke="rgba(15, 23, 42, 0.08)" horizontal={false} />
               <XAxis type="number" tickFormatter={formatCompactDuration} tickLine={false} axisLine={false} />
               <YAxis type="category" dataKey="name" width={110} tickLine={false} axisLine={false} tick={{ fontSize: 12 }} />
@@ -58,7 +71,11 @@ export function CreatorView({ data }: { data: DashboardData }) {
             </thead>
             <tbody>
               {data.creators.map((creator, index) => (
-                <tr key={`${creator.mid}-${creator.name}`}>
+                <tr
+                  key={`${creator.mid}-${creator.name}`}
+                  className="clickable-row"
+                  onClick={() => router.push(buildHistoryHref({ creator: creator.name, creatorMid: creator.mid }))}
+                >
                   <td>#{index + 1}</td>
                   <td>{creator.name}</td>
                   <td>{formatDuration(creator.seconds)}</td>
@@ -72,4 +89,8 @@ export function CreatorView({ data }: { data: DashboardData }) {
       </article>
     </section>
   );
+}
+
+function getActivePayload<T>(payload: unknown) {
+  return (payload as { activePayload?: Array<{ payload?: T }> })?.activePayload?.[0]?.payload;
 }
