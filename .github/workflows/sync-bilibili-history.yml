@@ -1,0 +1,33 @@
+name: Sync Bilibili History
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Every 3 hours. GitHub Actions cron uses UTC.
+    - cron: "12 */3 * * *"
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.16.0
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Sync history
+        run: npm run sync:bilibili
+        env:
+          BILI_COOKIE: ${{ secrets.BILI_COOKIE }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SYNC_MAX_PAGES: ${{ vars.SYNC_MAX_PAGES || '50' }}
