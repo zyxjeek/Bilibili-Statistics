@@ -25,7 +25,7 @@ export function CategoryView({ data }: { data: DashboardData }) {
         <div className="panel-heading">
           <div>
             <h2>分类观看时长</h2>
-            <p>按有效观看进度统计</p>
+            <p>只统计已计入的完播视频</p>
           </div>
         </div>
         <div className="chart-box tall">

@@ -35,19 +35,19 @@ const navItems = [
 const viewTitles: Record<DashboardView, { title: string; description: string }> = {
   overview: {
     title: "观看统计",
-    description: "按有效观看进度估算你的 Bilibili 内容习惯。",
+    description: "按已计入的完播视频追踪你的 Bilibili 内容习惯。",
   },
   trends: {
     title: "观看趋势",
-    description: "查看每日、每周、每月和年度估算观看时长变化。",
+    description: "查看每日、每周、每月和年度完播观看时长变化。",
   },
   categories: {
     title: "内容分类",
-    description: "按 Bilibili 历史记录中的分类标签统计观看进度和数量。",
+    description: "按 Bilibili 历史记录中的分类标签统计完播时长和数量。",
   },
   creators: {
     title: "UP 主排行",
-    description: "找出你投入最多有效观看时间的创作者。",
+    description: "找出你投入最多完播观看时间的创作者。",
   },
   history: {
     title: "观看明细",
@@ -90,7 +90,7 @@ export function DashboardFrame({ children }: { children: React.ReactNode }) {
         </nav>
 
         <div className="sidebar-footer">
-          <div className="mini-label">今年估算</div>
+          <div className="mini-label">今年计入</div>
           <div className="mini-value">{formatDuration(totalSeconds)}</div>
         </div>
       </aside>
@@ -137,7 +137,7 @@ export function OverviewView({ data }: { data: DashboardData }) {
             <span>{card.label}</span>
             <strong>{formatDuration(card.seconds)}</strong>
             <small>
-              {card.videos} 个视频 / {card.creators} 位 UP 主
+              {card.videos} 个计入视频 / {card.creators} 位 UP 主
             </small>
           </article>
         ))}

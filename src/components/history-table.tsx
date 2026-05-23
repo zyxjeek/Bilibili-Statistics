@@ -2,10 +2,19 @@
 
 import { Search } from "lucide-react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import type { WatchHistoryRow } from "@/lib/types";
 import { formatDateTime, formatDuration } from "@/lib/format";
-import { getCoverUrl, getProgressSeconds, getVideoDuration, getVideoHref } from "@/lib/watch-metrics";
+import {
+  getCoverUrl,
+  getProgressSeconds,
+  getVideoDuration,
+  getVideoHref,
+  isCompletedVideo,
+  isLongVideo,
+  shouldCountHistoryRow,
+} from "@/lib/watch-metrics";
 
 type HistoryTableProps = {
   rows: WatchHistoryRow[];
@@ -13,9 +22,13 @@ type HistoryTableProps = {
 };
 
 export function HistoryTable({ rows, compact = false }: HistoryTableProps) {
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("all");
   const [creator, setCreator] = useState("all");
+  const [pendingId, setPendingId] = useState<string | null>(null);
+  const [error, setError] = useState("");
+  const [localOverrides, setLocalOverrides] = useState<Record<string, boolean>>({});
 
   const categories = useMemo(
     () => ["all", ...Array.from(new Set(rows.map((row) => row.tag_name || "未分类"))).sort()],
@@ -47,12 +60,47 @@ export function HistoryTable({ rows, compact = false }: HistoryTableProps) {
       .slice(0, compact ? 12 : 200);
   }, [category, compact, creator, query, rows]);
 
+  async function setCountOverride(row: WatchHistoryRow, countOverride: boolean) {
+    setPendingId(row.id);
+    setError("");
+
+    const response = await fetch("/api/watch-history/count-override", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: row.id, countOverride }),
+    });
+
+    setPendingId(null);
+
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+      setError(payload?.error ?? "保存统计设置失败");
+      return;
+    }
+
+    setLocalOverrides((current) => ({ ...current, [row.id]: countOverride }));
+    router.refresh();
+  }
+
+  function withLocalOverride(row: WatchHistoryRow) {
+    if (Object.prototype.hasOwnProperty.call(localOverrides, row.id)) {
+      return { ...row, count_override: localOverrides[row.id] };
+    }
+
+    return row;
+  }
+
   return (
     <section className="panel">
       <div className="panel-heading table-heading">
         <div>
           <h2>{compact ? "最近观看" : "观看明细"}</h2>
-          <p>{compact ? "最近 12 条记录" : "最多展示 200 条，可按关键字、分类和 UP 主筛选"}</p>
+          <p>
+            {compact
+              ? "最近 12 条记录"
+              : "最多展示 200 条；20 分钟以上完播视频可手动计入统计"}
+          </p>
+          {error ? <span className="form-error">{error}</span> : null}
         </div>
         {!compact ? (
           <div className="filters">
@@ -91,11 +139,13 @@ export function HistoryTable({ rows, compact = false }: HistoryTableProps) {
               <th>分类</th>
               <th>时长</th>
               <th>进度</th>
+              <th>统计</th>
               <th>观看时间</th>
             </tr>
           </thead>
           <tbody>
-            {filteredRows.map((row) => {
+            {filteredRows.map((sourceRow) => {
+              const row = withLocalOverride(sourceRow);
               const href = getVideoHref(row);
               const progressSeconds = getProgressSeconds(row);
 
@@ -119,6 +169,13 @@ export function HistoryTable({ rows, compact = false }: HistoryTableProps) {
                   <td>{row.tag_name ?? "未分类"}</td>
                   <td>{formatDuration(getVideoDuration(row) ?? 0)}</td>
                   <td>{progressSeconds ? formatDuration(progressSeconds) : "-"}</td>
+                  <td>
+                    <CountControl
+                      row={row}
+                      pending={pendingId === row.id}
+                      onToggle={(countOverride) => setCountOverride(row, countOverride)}
+                    />
+                  </td>
                   <td>{formatDateTime(row.view_at)}</td>
                 </tr>
               );
@@ -127,6 +184,37 @@ export function HistoryTable({ rows, compact = false }: HistoryTableProps) {
         </table>
       </div>
     </section>
+  );
+}
+
+function CountControl({
+  onToggle,
+  pending,
+  row,
+}: {
+  onToggle: (countOverride: boolean) => void;
+  pending: boolean;
+  row: WatchHistoryRow;
+}) {
+  if (!isCompletedVideo(row)) {
+    return <span className="count-state muted">未完播</span>;
+  }
+
+  if (!isLongVideo(row)) {
+    return <span className="count-state active">自动</span>;
+  }
+
+  const counted = shouldCountHistoryRow(row);
+
+  return (
+    <button
+      type="button"
+      className={counted ? "count-toggle included" : "count-toggle excluded"}
+      disabled={pending}
+      onClick={() => onToggle(!counted)}
+    >
+      {pending ? "保存中" : counted ? "已计入" : "未计入"}
+    </button>
   );
 }
 

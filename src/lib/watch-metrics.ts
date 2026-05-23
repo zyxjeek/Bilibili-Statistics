@@ -1,6 +1,7 @@
 import type { WatchHistoryRow } from "./types";
 
 const videoBusinesses = new Set(["archive", "pgc"]);
+export const LONG_VIDEO_SECONDS = 20 * 60;
 
 export function normalizeHistoryRow(row: WatchHistoryRow): WatchHistoryRow {
   const bvid = row.bvid ?? rawString(row.raw, ["bvid"]) ?? rawString(row.raw, ["history", "bvid"]);
@@ -10,6 +11,7 @@ export function normalizeHistoryRow(row: WatchHistoryRow): WatchHistoryRow {
     ...row,
     business,
     bvid,
+    count_override: row.count_override ?? null,
     duration: normalizeNonNegative(row.duration ?? rawNumber(row.raw, ["duration"])),
     progress: normalizeProgress(row.progress ?? rawNumber(row.raw, ["progress"])),
     cover: normalizeExternalUrl(row.cover ?? rawString(row.raw, ["cover"])),
@@ -37,29 +39,47 @@ export function getProgressSeconds(row: WatchHistoryRow) {
 }
 
 export function getWatchedSeconds(row: WatchHistoryRow) {
-  if (!isVideoHistory(row)) {
+  if (!shouldCountHistoryRow(row)) {
     return 0;
   }
 
-  const duration = getVideoDuration(row);
-  if (!duration) {
-    return 0;
+  return getVideoDuration(row) ?? 0;
+}
+
+export function shouldCountHistoryRow(row: WatchHistoryRow) {
+  if (!isCompletedVideo(row)) {
+    return false;
   }
 
-  const progress = normalizeProgress(row.progress ?? rawNumber(row.raw, ["progress"]));
-  if (progress === -1) {
-    return duration;
+  if (isLongVideo(row)) {
+    return row.count_override === true;
   }
 
-  if (!progress || progress <= 0) {
-    return 0;
-  }
-
-  return Math.min(progress, duration);
+  return row.count_override !== false;
 }
 
 export function hasWatchedSeconds(row: WatchHistoryRow) {
   return getWatchedSeconds(row) > 0;
+}
+
+export function isCompletedVideo(row: WatchHistoryRow) {
+  if (!isVideoHistory(row)) {
+    return false;
+  }
+
+  const duration = getVideoDuration(row);
+  const progress = normalizeProgress(row.progress ?? rawNumber(row.raw, ["progress"]));
+
+  if (!duration) {
+    return false;
+  }
+
+  return progress === -1 || Boolean(progress && progress >= duration);
+}
+
+export function isLongVideo(row: WatchHistoryRow) {
+  const duration = getVideoDuration(row);
+  return Boolean(duration && duration >= LONG_VIDEO_SECONDS);
 }
 
 export function getVideoHref(row: WatchHistoryRow) {

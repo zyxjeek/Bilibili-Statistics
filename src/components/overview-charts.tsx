@@ -31,7 +31,7 @@ export function OverviewCharts({ data }: { data: DashboardData }) {
         <div className="panel-heading">
           <div>
             <h2>最近 30 天趋势</h2>
-            <p>每日估算观看时长和视频数量</p>
+            <p>每日已计入完播时长和视频数量</p>
           </div>
         </div>
         <div className="chart-box">
@@ -57,7 +57,7 @@ export function OverviewCharts({ data }: { data: DashboardData }) {
         <div className="panel-heading">
           <div>
             <h2>分类分布</h2>
-            <p>按有效观看进度统计</p>
+            <p>按已计入完播时长统计</p>
           </div>
         </div>
         <div className="donut-wrap">
@@ -94,7 +94,7 @@ export function OverviewCharts({ data }: { data: DashboardData }) {
         <div className="panel-heading">
           <div>
             <h2>UP 主排行</h2>
-            <p>Top 8 估算观看时长</p>
+            <p>Top 8 已计入完播时长</p>
           </div>
         </div>
         <div className="chart-box short">

@@ -22,7 +22,7 @@ export function CreatorView({ data }: { data: DashboardData }) {
         <div className="panel-heading">
           <div>
             <h2>Top UP 主观看时长</h2>
-            <p>按近一年有效观看进度聚合</p>
+            <p>按近一年已计入的完播视频聚合</p>
           </div>
         </div>
         <div className="chart-box tall">

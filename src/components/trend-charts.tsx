@@ -53,7 +53,7 @@ export function TrendCharts({ data }: { data: DashboardData }) {
       <article className="panel tall">
         <div className="panel-heading">
           <div>
-            <h2>观看时长趋势</h2>
+            <h2>完播时长趋势</h2>
             <p>当前周期：{ranges.find((item) => item.key === range)?.label}</p>
           </div>
         </div>
@@ -81,7 +81,7 @@ export function TrendCharts({ data }: { data: DashboardData }) {
         <div className="panel-heading">
           <div>
             <h2>视频数量趋势</h2>
-            <p>同周期内观看过的视频条目数</p>
+            <p>同周期内已计入的视频条目数</p>
           </div>
         </div>
         <div className="chart-box tall">

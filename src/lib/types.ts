@@ -9,6 +9,7 @@ export type WatchHistoryRow = {
   tag_name: string | null;
   duration: number | null;
   progress: number | null;
+  count_override: boolean | null;
   view_at: string;
   cover: string | null;
   uri: string | null;
