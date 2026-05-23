@@ -17,6 +17,7 @@ import {
   YAxis,
 } from "recharts";
 import type { DashboardData } from "@/lib/types";
+import { resolveChartDatum } from "@/lib/chart-drilldown";
 import { formatCompactDuration, formatDuration } from "@/lib/format";
 import { buildHistoryHref } from "@/lib/history-filters";
 import { useMounted } from "./use-mounted";
@@ -30,7 +31,7 @@ export function OverviewCharts({ data }: { data: DashboardData }) {
   const creatorData = data.creators.slice(0, 8);
 
   function openPayload(payload: unknown) {
-    const row = getActivePayload<{ from?: string; to?: string }>(payload);
+    const row = resolveChartDatum(payload, data.dailySeries);
     if (row?.from && row.to) {
       router.push(buildHistoryHref({ from: row.from, to: row.to }));
     }
@@ -82,7 +83,12 @@ export function OverviewCharts({ data }: { data: DashboardData }) {
                 outerRadius={92}
                 paddingAngle={4}
                 isAnimationActive={false}
-                onClick={(entry) => router.push(buildHistoryHref({ category: entry.name }))}
+                onClick={(entry) => {
+                  const category = resolveChartDatum(entry, categoryData);
+                  if (category?.name) {
+                    router.push(buildHistoryHref({ category: category.name }));
+                  }
+                }}
               >
                 {categoryData.map((entry, index) => (
                   <Cell key={entry.name} fill={colors[index % colors.length]} />
@@ -116,7 +122,7 @@ export function OverviewCharts({ data }: { data: DashboardData }) {
               layout="vertical"
               margin={{ top: 4, right: 20, left: 20, bottom: 4 }}
               onClick={(payload) => {
-                const creator = getActivePayload<{ mid?: number | null; name?: string }>(payload);
+                const creator = resolveChartDatum(payload, creatorData);
                 if (creator) {
                   router.push(buildHistoryHref({ creator: creator.name, creatorMid: creator.mid }));
                 }
@@ -126,15 +132,22 @@ export function OverviewCharts({ data }: { data: DashboardData }) {
               <XAxis type="number" tickFormatter={formatCompactDuration} tickLine={false} axisLine={false} />
               <YAxis type="category" dataKey="name" tickLine={false} axisLine={false} width={94} tick={{ fontSize: 12 }} />
               <Tooltip formatter={(value) => formatDuration(Number(value))} />
-              <Bar dataKey="seconds" fill="#15b8a6" radius={[0, 8, 8, 0]} isAnimationActive={false} />
+              <Bar
+                dataKey="seconds"
+                fill="#15b8a6"
+                radius={[0, 8, 8, 0]}
+                isAnimationActive={false}
+                onClick={(entry) => {
+                  const creator = resolveChartDatum(entry, creatorData);
+                  if (creator) {
+                    router.push(buildHistoryHref({ creator: creator.name, creatorMid: creator.mid }));
+                  }
+                }}
+              />
             </BarChart>
           </ResponsiveContainer> : null}
         </div>
       </article>
     </section>
   );
-}
-
-function getActivePayload<T>(payload: unknown) {
-  return (payload as { activePayload?: Array<{ payload?: T }> })?.activePayload?.[0]?.payload;
 }

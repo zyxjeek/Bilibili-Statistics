@@ -11,6 +11,7 @@ import {
   YAxis,
 } from "recharts";
 import type { DashboardData } from "@/lib/types";
+import { resolveChartDatum } from "@/lib/chart-drilldown";
 import { formatCompactDuration, formatDuration } from "@/lib/format";
 import { buildHistoryHref } from "@/lib/history-filters";
 import { useMounted } from "./use-mounted";
@@ -18,6 +19,7 @@ import { useMounted } from "./use-mounted";
 export function CreatorView({ data }: { data: DashboardData }) {
   const mounted = useMounted();
   const router = useRouter();
+  const chartData = data.creators.slice(0, 15);
 
   return (
     <section className="stack">
@@ -31,11 +33,11 @@ export function CreatorView({ data }: { data: DashboardData }) {
         <div className="chart-box tall clickable-chart">
           {mounted ? <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1} initialDimension={{ width: 1, height: 1 }}>
             <BarChart
-              data={data.creators.slice(0, 15)}
+              data={chartData}
               layout="vertical"
               margin={{ top: 14, right: 24, left: 32, bottom: 4 }}
               onClick={(payload) => {
-                const creator = getActivePayload<{ mid?: number | null; name?: string }>(payload);
+                const creator = resolveChartDatum(payload, chartData);
                 if (creator) {
                   router.push(buildHistoryHref({ creator: creator.name, creatorMid: creator.mid }));
                 }
@@ -45,7 +47,18 @@ export function CreatorView({ data }: { data: DashboardData }) {
               <XAxis type="number" tickFormatter={formatCompactDuration} tickLine={false} axisLine={false} />
               <YAxis type="category" dataKey="name" width={110} tickLine={false} axisLine={false} tick={{ fontSize: 12 }} />
               <Tooltip formatter={(value) => formatDuration(Number(value))} />
-              <Bar dataKey="seconds" fill="#fb7299" radius={[0, 8, 8, 0]} isAnimationActive={false} />
+              <Bar
+                dataKey="seconds"
+                fill="#fb7299"
+                radius={[0, 8, 8, 0]}
+                isAnimationActive={false}
+                onClick={(entry) => {
+                  const creator = resolveChartDatum(entry, chartData);
+                  if (creator) {
+                    router.push(buildHistoryHref({ creator: creator.name, creatorMid: creator.mid }));
+                  }
+                }}
+              />
             </BarChart>
           </ResponsiveContainer> : null}
         </div>
@@ -89,8 +102,4 @@ export function CreatorView({ data }: { data: DashboardData }) {
       </article>
     </section>
   );
-}
-
-function getActivePayload<T>(payload: unknown) {
-  return (payload as { activePayload?: Array<{ payload?: T }> })?.activePayload?.[0]?.payload;
 }

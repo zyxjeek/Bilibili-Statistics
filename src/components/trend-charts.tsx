@@ -14,6 +14,7 @@ import {
   YAxis,
 } from "recharts";
 import type { DashboardData, SeriesPoint } from "@/lib/types";
+import { resolveChartDatum } from "@/lib/chart-drilldown";
 import { formatCompactDuration, formatDuration } from "@/lib/format";
 import { buildHistoryHref } from "@/lib/history-filters";
 import { useMounted } from "./use-mounted";
@@ -39,7 +40,7 @@ export function TrendCharts({ data }: { data: DashboardData }) {
   }, [data.dailySeries, data.monthlySeries, data.weeklySeries, data.yearlySeries, range]);
 
   function openPayload(payload: unknown) {
-    const point = getActivePayload<SeriesPoint>(payload);
+    const point = resolveChartDatum<SeriesPoint>(payload, series);
     if (point?.from && point.to) {
       router.push(buildHistoryHref({ from: point.from, to: point.to }));
     }
@@ -101,15 +102,11 @@ export function TrendCharts({ data }: { data: DashboardData }) {
               <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fontSize: 12 }} />
               <YAxis tickLine={false} axisLine={false} width={44} />
               <Tooltip />
-              <Bar dataKey="videos" fill="#15b8a6" radius={[8, 8, 0, 0]} isAnimationActive={false} />
+              <Bar dataKey="videos" fill="#15b8a6" radius={[8, 8, 0, 0]} isAnimationActive={false} onClick={openPayload} />
             </BarChart>
           </ResponsiveContainer> : null}
         </div>
       </article>
     </section>
   );
-}
-
-function getActivePayload<T>(payload: unknown) {
-  return (payload as { activePayload?: Array<{ payload?: T }> })?.activePayload?.[0]?.payload;
 }

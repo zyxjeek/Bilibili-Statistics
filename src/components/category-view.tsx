@@ -13,6 +13,7 @@ import {
   YAxis,
 } from "recharts";
 import type { DashboardData } from "@/lib/types";
+import { resolveChartDatum } from "@/lib/chart-drilldown";
 import { formatCompactDuration, formatDuration } from "@/lib/format";
 import { buildHistoryHref } from "@/lib/history-filters";
 import { useMounted } from "./use-mounted";
@@ -38,7 +39,7 @@ export function CategoryView({ data }: { data: DashboardData }) {
               data={data.categories}
               margin={{ top: 14, right: 20, left: 0, bottom: 4 }}
               onClick={(payload) => {
-                const category = getActivePayload<{ name?: string }>(payload);
+                const category = resolveChartDatum(payload, data.categories);
                 if (category?.name) {
                   router.push(buildHistoryHref({ category: category.name }));
                 }
@@ -48,7 +49,17 @@ export function CategoryView({ data }: { data: DashboardData }) {
               <XAxis dataKey="name" tickLine={false} axisLine={false} tick={{ fontSize: 12 }} />
               <YAxis tickFormatter={formatCompactDuration} tickLine={false} axisLine={false} width={52} />
               <Tooltip formatter={(value) => formatDuration(Number(value))} />
-              <Bar dataKey="seconds" radius={[8, 8, 0, 0]} isAnimationActive={false}>
+              <Bar
+                dataKey="seconds"
+                radius={[8, 8, 0, 0]}
+                isAnimationActive={false}
+                onClick={(entry) => {
+                  const category = resolveChartDatum(entry, data.categories);
+                  if (category?.name) {
+                    router.push(buildHistoryHref({ category: category.name }));
+                  }
+                }}
+              >
                 {data.categories.map((entry, index) => (
                   <Cell key={entry.name} fill={colors[index % colors.length]} />
                 ))}
@@ -71,8 +82,4 @@ export function CategoryView({ data }: { data: DashboardData }) {
       </div>
     </section>
   );
-}
-
-function getActivePayload<T>(payload: unknown) {
-  return (payload as { activePayload?: Array<{ payload?: T }> })?.activePayload?.[0]?.payload;
 }
