@@ -9,9 +9,10 @@
 - 分类：按 `tag_name` 聚合观看时长和视频数量。
 - UP 主：按观看时长统计 Top UP 主。
 - 明细：按关键字、分类、UP 主筛选最近观看记录，并为 20 分钟以上完播视频手动选择是否计入统计。
+- 审核：集中处理 20 分钟以上且接近完播的待审核视频。
 - 访问保护：设置 `SITE_PASSWORD` 后需要密码进入仪表盘。
 
-统计口径：只统计完播视频。20 分钟以下的完播视频自动计入；20 分钟及以上的完播视频默认不计入，需要在明细页手动切换为“已计入”。
+统计口径：只统计完播视频。进度距离总时长小于等于 1 分钟时视为完播。20 分钟以下的完播视频自动计入；20 分钟及以上的完播视频默认不计入，需要在审核页或明细页手动选择“计入”或“排除”。
 
 ## 本地开发
 
@@ -39,7 +40,7 @@ npm run dev
 NEXT_PUBLIC_SUPABASE_URL=你的 Supabase URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY=你的 anon key
 SUPABASE_URL=你的 Supabase URL
-SUPABASE_SERVICE_ROLE_KEY=你的 service role key
+SUPABASE_SERVICE_ROLE_KEY=你的 service role key 或 secret key
 SITE_PASSWORD=你的站点访问密码
 ```
 
@@ -89,7 +90,7 @@ npm run sync:bilibili
 
 - `BILI_COOKIE`
 - `SUPABASE_URL`
-- `SUPABASE_SERVICE_ROLE_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`，如果你的 Supabase 项目显示的是新式 secret key，也可以配置为 `SUPABASE_SECRET_KEY`
 
 可选配置 GitHub Repository Variable：
 
@@ -102,7 +103,7 @@ npm run sync:bilibili
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_URL`
-- `SUPABASE_SERVICE_ROLE_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY` 或 `SUPABASE_SECRET_KEY`
 - `SITE_PASSWORD`
 
-不要在 Vercel 前端公开环境变量中配置 `BILI_COOKIE` 或 service role key。`SUPABASE_SERVICE_ROLE_KEY` 只用于服务端 API 保存长视频计入开关，变量名不能带 `NEXT_PUBLIC_`。
+不要在 Vercel 前端公开环境变量中配置 `BILI_COOKIE` 或 service/secret key。`SUPABASE_SERVICE_ROLE_KEY` / `SUPABASE_SECRET_KEY` 只用于服务端 API 保存长视频计入开关，变量名不能带 `NEXT_PUBLIC_`。

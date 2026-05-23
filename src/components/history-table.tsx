@@ -19,9 +19,20 @@ import {
 type HistoryTableProps = {
   rows: WatchHistoryRow[];
   compact?: boolean;
+  description?: string;
+  emptyMessage?: string;
+  showFilters?: boolean;
+  title?: string;
 };
 
-export function HistoryTable({ rows, compact = false }: HistoryTableProps) {
+export function HistoryTable({
+  compact = false,
+  description,
+  emptyMessage = "没有符合条件的观看记录。",
+  rows,
+  showFilters = !compact,
+  title,
+}: HistoryTableProps) {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("all");
@@ -94,15 +105,16 @@ export function HistoryTable({ rows, compact = false }: HistoryTableProps) {
     <section className="panel">
       <div className="panel-heading table-heading">
         <div>
-          <h2>{compact ? "最近观看" : "观看明细"}</h2>
+          <h2>{title ?? (compact ? "最近观看" : "观看明细")}</h2>
           <p>
-            {compact
+            {description ??
+              (compact
               ? "最近 12 条记录"
-              : "最多展示 200 条；20 分钟以上完播视频可手动计入统计"}
+              : "最多展示 200 条；20 分钟以上完播视频可手动计入统计")}
           </p>
           {error ? <span className="form-error">{error}</span> : null}
         </div>
-        {!compact ? (
+        {showFilters ? (
           <div className="filters">
             <label className="search-box">
               <Search size={16} />
@@ -144,6 +156,13 @@ export function HistoryTable({ rows, compact = false }: HistoryTableProps) {
             </tr>
           </thead>
           <tbody>
+            {filteredRows.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="empty-cell">
+                  {emptyMessage}
+                </td>
+              </tr>
+            ) : null}
             {filteredRows.map((sourceRow) => {
               const row = withLocalOverride(sourceRow);
               const href = getVideoHref(row);
@@ -173,7 +192,7 @@ export function HistoryTable({ rows, compact = false }: HistoryTableProps) {
                     <CountControl
                       row={row}
                       pending={pendingId === row.id}
-                      onToggle={(countOverride) => setCountOverride(row, countOverride)}
+                      onChange={(countOverride) => setCountOverride(row, countOverride)}
                     />
                   </td>
                   <td>{formatDateTime(row.view_at)}</td>
@@ -188,11 +207,11 @@ export function HistoryTable({ rows, compact = false }: HistoryTableProps) {
 }
 
 function CountControl({
-  onToggle,
+  onChange,
   pending,
   row,
 }: {
-  onToggle: (countOverride: boolean) => void;
+  onChange: (countOverride: boolean) => void;
   pending: boolean;
   row: WatchHistoryRow;
 }) {
@@ -204,6 +223,29 @@ function CountControl({
     return <span className="count-state active">自动</span>;
   }
 
+  if (row.count_override === null) {
+    return (
+      <span className="count-actions">
+        <button
+          type="button"
+          className="count-toggle included"
+          disabled={pending}
+          onClick={() => onChange(true)}
+        >
+          计入
+        </button>
+        <button
+          type="button"
+          className="count-toggle excluded"
+          disabled={pending}
+          onClick={() => onChange(false)}
+        >
+          排除
+        </button>
+      </span>
+    );
+  }
+
   const counted = shouldCountHistoryRow(row);
 
   return (
@@ -211,9 +253,9 @@ function CountControl({
       type="button"
       className={counted ? "count-toggle included" : "count-toggle excluded"}
       disabled={pending}
-      onClick={() => onToggle(!counted)}
+      onClick={() => onChange(!counted)}
     >
-      {pending ? "保存中" : counted ? "已计入" : "未计入"}
+      {pending ? "保存中" : counted ? "已计入" : "已排除"}
     </button>
   );
 }

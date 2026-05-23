@@ -5,6 +5,7 @@ import {
   CalendarClock,
   ChartNoAxesCombined,
   Clapperboard,
+  CircleAlert,
   LayoutDashboard,
   Tags,
   UserRound,
@@ -13,11 +14,12 @@ import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import type { DashboardData } from "@/lib/types";
 import { formatDateTime, formatDuration } from "@/lib/format";
+import { needsLongVideoReview } from "@/lib/watch-metrics";
 import { useDashboardData } from "./dashboard-data-provider";
 import { OverviewCharts } from "./overview-charts";
 import { HistoryTable } from "./history-table";
 
-type DashboardView = "overview" | "trends" | "categories" | "creators" | "history";
+type DashboardView = "overview" | "trends" | "categories" | "creators" | "history" | "review";
 
 const navItems = [
   { href: "/overview", label: "总览", icon: LayoutDashboard, view: "overview" },
@@ -25,6 +27,7 @@ const navItems = [
   { href: "/categories", label: "分类", icon: Tags, view: "categories" },
   { href: "/creators", label: "UP主", icon: UserRound, view: "creators" },
   { href: "/history", label: "明细", icon: Clapperboard, view: "history" },
+  { href: "/review", label: "审核", icon: CircleAlert, view: "review" },
 ] satisfies Array<{
   href: string;
   label: string;
@@ -53,12 +56,17 @@ const viewTitles: Record<DashboardView, { title: string; description: string }> 
     title: "观看明细",
     description: "按日期、分类和 UP 主筛选最近观看记录。",
   },
+  review: {
+    title: "长视频审核",
+    description: "确认 20 分钟以上且接近完播的视频是否应计入统计。",
+  },
 };
 
 export function DashboardFrame({ children }: { children: React.ReactNode }) {
   const data = useDashboardData();
   const activeView = getActiveView(usePathname());
   const totalSeconds = data.statCards.find((card) => card.key === "year")?.seconds ?? 0;
+  const pendingReviewCount = data.rows.filter(needsLongVideoReview).length;
   const title = viewTitles[activeView];
 
   return (
@@ -83,6 +91,9 @@ export function DashboardFrame({ children }: { children: React.ReactNode }) {
               >
                 <Icon size={18} strokeWidth={2.1} />
                 <span>{item.label}</span>
+                {item.view === "review" && pendingReviewCount > 0 ? (
+                  <span className="nav-alert-dot" aria-label={`${pendingReviewCount} 条长视频待审核`} />
+                ) : null}
                 <NavPendingHint />
               </Link>
             );

@@ -2,6 +2,7 @@ import type { WatchHistoryRow } from "./types";
 
 const videoBusinesses = new Set(["archive", "pgc"]);
 export const LONG_VIDEO_SECONDS = 20 * 60;
+export const COMPLETION_GRACE_SECONDS = 60;
 
 export function normalizeHistoryRow(row: WatchHistoryRow): WatchHistoryRow {
   const bvid = row.bvid ?? rawString(row.raw, ["bvid"]) ?? rawString(row.raw, ["history", "bvid"]);
@@ -74,12 +75,16 @@ export function isCompletedVideo(row: WatchHistoryRow) {
     return false;
   }
 
-  return progress === -1 || Boolean(progress && progress >= duration);
+  return progress === -1 || Boolean(progress && duration - progress <= COMPLETION_GRACE_SECONDS);
 }
 
 export function isLongVideo(row: WatchHistoryRow) {
   const duration = getVideoDuration(row);
   return Boolean(duration && duration >= LONG_VIDEO_SECONDS);
+}
+
+export function needsLongVideoReview(row: WatchHistoryRow) {
+  return isCompletedVideo(row) && isLongVideo(row) && row.count_override === null;
 }
 
 export function getVideoHref(row: WatchHistoryRow) {
