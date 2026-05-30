@@ -1,5 +1,6 @@
 import "dotenv/config";
 import { createClient } from "@supabase/supabase-js";
+import { getUsableBilibiliCookie } from "./bilibili-auth";
 
 type BiliHistoryItem = {
   title?: string;
@@ -46,15 +47,18 @@ type WatchHistoryInsert = {
 const endpoint = "https://api.bilibili.com/x/web-interface/history/cursor";
 const pageSize = 30;
 const maxPages = Number(process.env.SYNC_MAX_PAGES ?? 50);
-const biliCookie = requireEnv("BILI_COOKIE");
 const supabaseUrl = process.env.SUPABASE_URL || requireEnv("NEXT_PUBLIC_SUPABASE_URL");
-const serviceRoleKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
+const serviceRoleKey =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  process.env.SUPABASE_SECRET_KEY ||
+  requireEnv("SUPABASE_SERVICE_ROLE_KEY");
 
 const supabase = createClient(supabaseUrl, serviceRoleKey, {
   auth: { persistSession: false },
 });
 
 async function main() {
+  const biliCookie = await getUsableBilibiliCookie(supabase);
   const runId = await createRun();
   let fetchedCount = 0;
   let insertedCount = 0;
@@ -62,7 +66,7 @@ async function main() {
 
   try {
     for (let page = 0; page < maxPages; page += 1) {
-      const response = await fetchHistory(cursor);
+      const response = await fetchHistory(cursor, biliCookie);
       const items = response.list.map(normalizeItem).filter(Boolean) as WatchHistoryInsert[];
       fetchedCount += items.length;
 
@@ -102,7 +106,10 @@ async function main() {
   }
 }
 
-async function fetchHistory(cursor: BiliCursor): Promise<{ list: BiliHistoryItem[]; cursor: BiliCursor }> {
+async function fetchHistory(
+  cursor: BiliCursor,
+  biliCookie: string,
+): Promise<{ list: BiliHistoryItem[]; cursor: BiliCursor }> {
   const url = new URL(endpoint);
   url.searchParams.set("ps", String(pageSize));
   if (cursor.max) url.searchParams.set("max", String(cursor.max));
@@ -124,7 +131,10 @@ async function fetchHistory(cursor: BiliCursor): Promise<{ list: BiliHistoryItem
 
   const payload = await response.json();
   if (payload.code !== 0) {
-    const hint = payload.code === -101 ? "Cookie 已失效，请更新 GitHub Secret BILI_COOKIE。" : payload.message;
+    const hint =
+      payload.code === -101
+        ? "Cookie 已失效，请运行 Authorize Bilibili workflow 重新扫码登录。"
+        : payload.message;
     throw new Error(`Bilibili API error ${payload.code}: ${hint}`);
   }
 

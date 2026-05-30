@@ -34,7 +34,7 @@ npm run dev
 ## Supabase 初始化
 
 1. 创建 Supabase 项目。
-2. 在 SQL Editor 执行 `supabase/migrations/001_initial_schema.sql`。
+2. 在 SQL Editor 按文件名顺序执行 `supabase/migrations/*.sql`。
 3. 在 `.env.local` 或 Vercel 环境变量中配置：
 
 ```bash
@@ -64,17 +64,22 @@ SITE_PASSWORD=你的站点访问密码
 ```bash
 SUPABASE_URL=你的 Supabase URL
 SUPABASE_SERVICE_ROLE_KEY=你的 service role key
-BILI_COOKIE=你的 Bilibili Cookie
 SYNC_MAX_PAGES=50
 ```
+
+首次使用时先完成 Bilibili 授权：
+
+```bash
+npm run auth:bilibili
+```
+
+脚本会生成 Bilibili 扫码登录二维码。用 Bilibili 手机客户端扫码并确认后，Cookie 和 `refresh_token` 会保存到 Supabase 的 `app_secrets` 表。后续同步会自动读取并在 Bilibili 要求刷新时更新 Cookie。
 
 运行：
 
 ```bash
 npm run sync:bilibili
 ```
-
-`BILI_COOKIE` 至少需要包含已登录账号的 `SESSDATA`。Cookie 过期时，脚本会失败并提示更新。
 
 `SYNC_MAX_PAGES` 表示一次同步最多翻多少页历史记录，Bilibili 历史接口每页最多约 30 条。默认 `50` 约等于最多检查 1500 条记录。
 
@@ -89,9 +94,10 @@ npm run sync:bilibili
 
 需要配置 GitHub Secrets：
 
-- `BILI_COOKIE`
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`，如果你的 Supabase 项目显示的是新式 secret key，也可以配置为 `SUPABASE_SECRET_KEY`
+
+首次使用或账号登录失效时，手动运行 `.github/workflows/authorize-bilibili.yml` 对应的 `Authorize Bilibili` workflow。打开运行日志，用 Bilibili 手机客户端扫描日志里的二维码并确认登录；workflow 会自动把 Cookie 和 `refresh_token` 保存到 Supabase，不需要再手动复制 Cookie 或上传 `BILI_COOKIE` Secret。
 
 可选配置 GitHub Repository Variable：
 
@@ -107,4 +113,4 @@ npm run sync:bilibili
 - `SUPABASE_SERVICE_ROLE_KEY` 或 `SUPABASE_SECRET_KEY`
 - `SITE_PASSWORD`
 
-不要在 Vercel 前端公开环境变量中配置 `BILI_COOKIE` 或 service/secret key。`SUPABASE_SERVICE_ROLE_KEY` / `SUPABASE_SECRET_KEY` 只用于服务端 API 保存长视频计入开关，变量名不能带 `NEXT_PUBLIC_`。
+不要在 Vercel 前端公开环境变量中配置 service/secret key。`SUPABASE_SERVICE_ROLE_KEY` / `SUPABASE_SECRET_KEY` 只用于服务端 API 保存长视频计入开关，变量名不能带 `NEXT_PUBLIC_`。
